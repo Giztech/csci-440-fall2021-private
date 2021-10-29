@@ -66,6 +66,7 @@ public class Homework2 extends DBTest {
 
         Integer after = (Integer) executeSQL("SELECT COUNT(*) as COUNT FROM genres").get(0).get("COUNT");
         assertEquals(before + 5, after);
+
     }
 
 }
