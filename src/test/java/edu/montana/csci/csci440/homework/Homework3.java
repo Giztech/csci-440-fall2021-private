@@ -33,17 +33,22 @@ public class Homework3 extends DBTest {
 
         try(Connection connection = DB.connect()){
             connection.setAutoCommit(false);
-            PreparedStatement subtract = connection.prepareStatement("TODO");
-            subtract.setLong(1, 0);
-            subtract.setLong(2, 0);
+            PreparedStatement subtract = connection.prepareStatement("UPDATE tracks\n" +
+                    "SET Milliseconds = (Milliseconds -?)" +
+                    "WHERE TrackId = ?;");
+            subtract.setLong(1, 10);
+            subtract.setLong(2, 1);
             subtract.execute();
 
-            PreparedStatement add = connection.prepareStatement("TODO");
-            subtract.setLong(1, 0);
-            subtract.setLong(2, 0);
+            PreparedStatement add = connection.prepareStatement("UPDATE tracks\n" +
+                    "SET Milliseconds = (Milliseconds + ? )" +
+                    "WHERE TrackId = ?;");
+            subtract.setLong(1, -10);
+            subtract.setLong(2, 2);
             subtract.execute();
 
             // commit with the connection
+            connection.commit();
         }
 
         // refresh tracks from db
@@ -66,12 +71,12 @@ public class Homework3 extends DBTest {
     public void selectPopularTracksAndTheirAlbums() throws SQLException {
 
         // HINT: join to invoice items and do a group by/having to get the right answer
-        List<Map<String, Object>> tracks = executeSQL("");
+        List<Map<String, Object>> tracks = executeSQL("SELECT COUNT(tracks.TrackId) FROM tracks LEFT JOIN invoice_items InvoiceItems on tracks.TrackId = InvoiceItems.TrackId GROUP BY InvoiceItems.TrackId HAVING SUM(Quantity) > 1;");
         assertEquals(256, tracks.size());
 
         // HINT: join to tracks and invoice items and do a group by/having to get the right answer
         //       note: you will need to use the DISTINCT operator to get the right result!
-        List<Map<String, Object>> albums = executeSQL("");
+        List<Map<String, Object>> albums = executeSQL("SELECT DISTINCT albums.AlbumId FROM albums LEFT JOIN tracks Tracks on albums.AlbumId = Tracks.AlbumId LEFT JOIN invoice_items InvoiceItems on Tracks.TrackId = InvoiceItems.TrackId GROUP BY InvoiceItems.TrackId HAVING SUM(Quantity) > 1; ");
         assertEquals(166, albums.size());
     }
 
@@ -84,7 +89,7 @@ public class Homework3 extends DBTest {
      * */
     public void selectCustomersMeetingCriteria() throws SQLException {
         // HINT: join to invoice items and do a group by/having to get the right answer
-        List<Map<String, Object>> tracks = executeSQL("" );
+        List<Map<String, Object>> tracks = executeSQL("SELECT customers.CustomerId FROM customers LEFT JOIN employees Employees on customers.SupportRepId = Employees.EmployeeId WHERE SupportRepId = 3 IN (SELECT customers.CustomerId FROM customers LEFT JOIN invoices Invoices on customers.CustomerId = Invoices.CustomerId LEFT JOIN invoice_items InvoiceItems on Invoices.InvoiceId = InvoiceItems.InvoiceId LEFT JOIN tracks Tracks on InvoiceItems.TrackId = Tracks.TrackId WHERE Tracks.GenreId = 1)" );
         assertEquals(21, tracks.size());
     }
 
