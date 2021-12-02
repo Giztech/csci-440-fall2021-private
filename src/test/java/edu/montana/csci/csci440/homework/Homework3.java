@@ -91,6 +91,7 @@ public class Homework3 extends DBTest {
         // HINT: join to invoice items and do a group by/having to get the right answer
         List<Map<String, Object>> tracks = executeSQL("SELECT customers.CustomerId FROM customers LEFT JOIN employees Employees on customers.SupportRepId = Employees.EmployeeId WHERE SupportRepId = 3 IN (SELECT customers.CustomerId FROM customers LEFT JOIN invoices Invoices on customers.CustomerId = Invoices.CustomerId LEFT JOIN invoice_items InvoiceItems on Invoices.InvoiceId = InvoiceItems.InvoiceId LEFT JOIN tracks Tracks on InvoiceItems.TrackId = Tracks.TrackId WHERE Tracks.GenreId = 1)" );
         assertEquals(21, tracks.size());
+
     }
 
 
