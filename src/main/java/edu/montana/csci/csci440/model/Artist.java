@@ -24,7 +24,16 @@ public class Artist extends Model {
         artistId = results.getLong("ArtistId");
     }
 
-    public List<Album> getAlbums(){
+    @Override
+    public boolean verify() {
+        _errors.clear();
+        if (name == null || "".equals(name)) {
+            addError("Name cannot be blank");
+        }
+        return !hasErrors();
+    }
+
+    public List<Album> getAlbums() {
         return Album.getForArtist(artistId);
     }
 
@@ -51,9 +60,10 @@ public class Artist extends Model {
     public static List<Artist> all(int page, int count) {
         try (Connection conn = DB.connect();
              PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT * FROM artists LIMIT ?"
+                     "SELECT * FROM artists ORDER BY ArtistId LIMIT ? OFFSET ?"
              )) {
             stmt.setInt(1, count);
+            stmt.setInt(2, page * count - count);
             ResultSet results = stmt.executeQuery();
             List<Artist> resultList = new LinkedList<>();
             while (results.next()) {
@@ -80,4 +90,45 @@ public class Artist extends Model {
         }
     }
 
+    @Override
+    public boolean update() {
+        if (verify()) {
+            try (Connection conn = DB.connect()){
+                conn.setAutoCommit(false);
+                PreparedStatement version = conn.prepareStatement("SELECT Name FROM artists WHERE Name = ?");
+                version.setString(1, this.getName());
+                PreparedStatement stmt = conn.prepareStatement("UPDATE artists SET Name = ? WHERE ArtistId =?;");
+                stmt.setString(1, this.getName());
+                stmt.setLong(2, this.getArtistId());
+                stmt.executeUpdate();
+                conn.commit();
+                return true;
+            }
+            catch (SQLException sqlException) {
+                throw new RuntimeException(sqlException);
+            }
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean create() {
+        if (verify()) {
+            try (Connection conn = DB.connect();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "INSERT INTO artists (Name) VALUES (?)")) {
+                stmt.setString(1, this.getName());
+                stmt.executeUpdate();
+                artistId = DB.getLastID(conn);
+                return true;
+            } catch (SQLException sqlException) {
+                throw new RuntimeException(sqlException);
+            }
+        } else {
+            return false;
+        }
+    }
 }
+
+
