@@ -24,11 +24,12 @@ public class Artist extends Model {
         artistId = results.getLong("ArtistId");
     }
 
+    // Same method as in Employee
     @Override
     public boolean verify() {
         _errors.clear();
         if (name == null || "".equals(name)) {
-            addError("Name cannot be blank");
+            addError("Name can't be null or blank!");
         }
         return !hasErrors();
     }

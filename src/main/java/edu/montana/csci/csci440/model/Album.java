@@ -19,14 +19,16 @@ public class Album extends Model {
     public Album() {
     }
 
+
+    // Same method as in Employee
     @Override
     public boolean verify() {
         _errors.clear();
         if (title == null || "".equals(title)) {
-            addError("Title cannot be blank!");
+            addError("Title can't be null or blank!");
         }
         if (artistId == null || "".equals(artistId)){
-            addError("Artist Id cannot be blank!");
+            addError("artistID can't be null or blank!");
         }
         return !hasErrors();
     }

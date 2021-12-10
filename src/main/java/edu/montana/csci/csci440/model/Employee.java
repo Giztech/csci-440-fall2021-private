@@ -7,6 +7,7 @@ import java.sql.*;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class Employee extends Model {
 
@@ -16,6 +17,7 @@ public class Employee extends Model {
     private String lastName;
     private String email;
     private String title;
+    public static final Pattern VALID_EMAIL_ADDRESS_REGEX = Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
 
     public Employee() {
         // new employee for insert
@@ -31,18 +33,34 @@ public class Employee extends Model {
     }
 
     public static List<Employee.SalesSummary> getSalesSummaries() {
-        //TODO - a GROUP BY query to determine the sales (look at the invoices table), using the SalesSummary class
-        return Collections.emptyList();
+        try (Connection conn = DB.connect();
+             PreparedStatement stmt = conn.prepareStatement(
+                     "SELECT employees.FirstName, employees.LastName, employees.Email, COUNT(InvoiceId) AS SalesCount, SUM(Total)+0 AS SalesTotal\n" +
+                             "FROM employees\n" +
+                             "LEFT JOIN customers c on employees.EmployeeId = c.SupportRepId\n" +
+                             "LEFT JOIN invoices i on c.CustomerId = i.CustomerId\n" +
+                             "GROUP BY EmployeeId\n" +
+                             "ORDER BY SalesCount DESC;"
+             )) {
+            ResultSet results = stmt.executeQuery();
+            List<Employee.SalesSummary> salesSummaryList = new LinkedList<>();
+            while (results.next()) {
+                salesSummaryList.add(new SalesSummary(results));
+            }
+            return salesSummaryList;
+        } catch (SQLException sqlException) {
+            throw new RuntimeException(sqlException);
+        }
     }
 
     @Override
     public boolean verify() {
-        _errors.clear(); // clear any existing errors
+        _errors.clear();
         if (firstName == null || "".equals(firstName)) {
-            addError("FirstName can't be null or blank!");
+            addError("First name cannot be blank");
         }
         if (lastName == null || "".equals(lastName)) {
-            addError("LastName can't be null!");
+            addError("Last name cannot be blank");
         }
         return !hasErrors();
     }
