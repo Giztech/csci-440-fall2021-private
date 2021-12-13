@@ -1,12 +1,14 @@
 package edu.montana.csci.csci440.model;
 
 import edu.montana.csci.csci440.util.DB;
+import org.javalite.activejdbc.validation.EmailValidator;
 
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Employee extends Model {
@@ -17,7 +19,10 @@ public class Employee extends Model {
     private String lastName;
     private String email;
     private String title;
-    public static final Pattern VALID_EMAIL_ADDRESS_REGEX = Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
+    public static final Pattern VALID_EMAIL_ADDRESS_REGEX =
+            Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
+
+
 
     public Employee() {
         // new employee for insert
@@ -53,17 +58,29 @@ public class Employee extends Model {
         }
     }
 
+    public static boolean validateEmail(String emailStr) {
+        Matcher matcher = VALID_EMAIL_ADDRESS_REGEX.matcher(emailStr);
+        return matcher.find();
+    }
+
     @Override
     public boolean verify() {
-        _errors.clear();
+        _errors.clear(); // clear any existing errors
         if (firstName == null || "".equals(firstName)) {
-            addError("First name cannot be blank");
+            addError("FirstName can't be null or blank!");
         }
         if (lastName == null || "".equals(lastName)) {
-            addError("Last name cannot be blank");
+            addError("LastName can't be null!");
+        }
+        if (email == null || "".equals(email) ) {
+            addError("email can't be null!");
+        }
+        else if (!validateEmail(email)){
+            addError("Invalid email");
         }
         return !hasErrors();
     }
+
 
     @Override
     public boolean update() {
@@ -90,10 +107,11 @@ public class Employee extends Model {
         if (verify()) {
             try (Connection conn = DB.connect();
                  PreparedStatement stmt = conn.prepareStatement(
-                         "INSERT INTO employees (FirstName, LastName, Email) VALUES (?, ?, ?)")) {
+                         "INSERT INTO employees (FirstName, LastName, Email, ReportsTo) VALUES (?, ?, ?, ?)")) {
                 stmt.setString(1, this.getFirstName());
                 stmt.setString(2, this.getLastName());
                 stmt.setString(3, this.getEmail());
+                stmt.setLong(4, this.getReportsTo());
                 stmt.executeUpdate();
                 employeeId = DB.getLastID(conn);
                 return true;
@@ -147,7 +165,6 @@ public class Employee extends Model {
     public Long getReportsTo() {
         return reportsTo;
     }
-
     public void setReportsTo(Long reportsTo) {
         this.reportsTo = reportsTo;
     }
@@ -169,8 +186,18 @@ public class Employee extends Model {
         }
     }
     public Employee getBoss() {
-        //TODO implement
-        return null;
+        try (Connection conn = DB.connect();
+             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM employees WHERE EmployeeId=?")) {
+            stmt.setLong(1, this.getReportsTo());
+            ResultSet results = stmt.executeQuery();
+            if (results.next()) {
+                return new Employee(results);
+            } else {
+                return null;
+            }
+        } catch (SQLException sqlException) {
+            throw new RuntimeException(sqlException);
+        }
     }
 
     public static List<Employee> all() {
@@ -179,10 +206,12 @@ public class Employee extends Model {
 
     public static List<Employee> all(int page, int count) {
         try (Connection conn = DB.connect();
+
              PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT * FROM employees LIMIT ?"
+                     "SELECT * FROM employees ORDER BY EmployeeId LIMIT ? OFFSET ?"
              )) {
             stmt.setInt(1, count);
+            stmt.setInt(2, page*count-count);
             ResultSet results = stmt.executeQuery();
             List<Employee> resultList = new LinkedList<>();
             while (results.next()) {
@@ -195,7 +224,18 @@ public class Employee extends Model {
     }
 
     public static Employee findByEmail(String newEmailAddress) {
-        throw new UnsupportedOperationException("Implement me");
+        try (Connection conn = DB.connect();
+             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM employees WHERE Email = ?")) {
+            stmt.setString(1, newEmailAddress);
+            ResultSet results = stmt.executeQuery();
+            if (results.next()) {
+                return new Employee(results);
+            } else {
+                return null;
+            }
+        } catch (SQLException sqlException) {
+            throw new RuntimeException(sqlException);
+        }
     }
 
     public static Employee find(long employeeId) {
@@ -218,7 +258,7 @@ public class Employee extends Model {
     }
 
     public void setReportsTo(Employee employee) {
-        // TODO implement
+        this.reportsTo = employee.getEmployeeId();
     }
 
     public static class SalesSummary {

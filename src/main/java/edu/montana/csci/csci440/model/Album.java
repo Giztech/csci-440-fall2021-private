@@ -116,13 +116,12 @@ public class Album extends Model {
     public boolean update(){
         if (verify()) {
             try (Connection conn = DB.connect()){
-                conn.setAutoCommit(false);
                 PreparedStatement stmt = conn.prepareStatement("UPDATE albums SET title = ?, ArtistId = ?  WHERE AlbumId =?;");
                 stmt.setString(1, this.getTitle());
                 stmt.setLong(2, this.getArtistId());
                 stmt.setLong(3, this.getAlbumId());
                 stmt.executeUpdate();
-                conn.commit();
+
                 return true;
             }
             catch (SQLException sqlException) {
