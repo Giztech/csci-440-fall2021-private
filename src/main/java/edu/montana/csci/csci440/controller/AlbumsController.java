@@ -1,6 +1,7 @@
 package edu.montana.csci.csci440.controller;
 
 import edu.montana.csci.csci440.model.Album;
+import edu.montana.csci.csci440.model.Artist;
 import edu.montana.csci.csci440.util.Web;
 
 import java.util.List;
@@ -18,6 +19,8 @@ public class AlbumsController {
 
         post("/albums/new", (req, resp) -> {
             Album album = new Album();
+
+            album.setArtist(Artist.find(Integer.parseInt(req.queryParams("ArtistId"))));
             Web.putValuesInto(album, "Title");
             if (album.create()) {
                 Web.message("Created A Album!");
@@ -28,6 +31,8 @@ public class AlbumsController {
                         "album", album);
             }
         });
+
+
 
         /* READ */
         get("/albums", (req, resp) -> {

@@ -1,6 +1,7 @@
 package edu.montana.csci.csci440.model;
 
 import edu.montana.csci.csci440.util.DB;
+import redis.clients.jedis.Jedis;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -20,7 +21,6 @@ public class Album extends Model {
     }
 
 
-    // Same method as in Employee
     @Override
     public boolean verify() {
         _errors.clear();
@@ -46,6 +46,7 @@ public class Album extends Model {
     public void setArtist(Artist artist) {
         artistId = artist.getArtistId();
     }
+
 
     public List<Track> getTracks() {
         return Track.forAlbum(albumId);
@@ -148,6 +149,18 @@ public class Album extends Model {
             }
         } else {
             return false;
+        }
+    }
+
+    @Override
+    public void delete() {
+        try (Connection conn = DB.connect();
+             PreparedStatement stmt = conn.prepareStatement(
+                     "DELETE FROM albums WHERE albumID=?")) {
+            stmt.setLong(1, this.getAlbumId());
+            stmt.executeUpdate();
+        } catch (SQLException sqlException) {
+            throw new RuntimeException(sqlException);
         }
     }
 

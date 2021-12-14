@@ -44,6 +44,8 @@ public class Artist extends Model {
         return artistId;
     }
 
+
+
     public void setArtist(Artist artist) {
         this.artistId = artist.getArtistId();
     }
